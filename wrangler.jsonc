@@ -1,0 +1,13 @@
+{
+  // Cloudflare Workers 配置
+  // 部署后可通过 https://<name>.<account-subdomain>.workers.dev 访问
+  // 也可在 Cloudflare 控制台给 Worker 绑定自定义域名
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gh-proxy",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-03-01",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  }
+}
