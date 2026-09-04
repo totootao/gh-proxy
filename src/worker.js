@@ -14,10 +14,7 @@ const MAX_CACHE_BYTES = 100 * 1024 * 1024 // 写入边缘缓存的最大体积
 
 // 上游域名白名单及允许的路径(防止被当作任意转发代理滥用)
 const HOST_RULES = {
-  'github.com': [
-    /^\/[^/]+\/[^/]+(?:\.git)?\/(?:releases|archive)\//,          // release 资产与源码包
-    /^\/[^/]+\/[^/]+(?:\.git)?\/(?:info\/refs|git-upload-pack)$/, // git clone(Smart HTTP)
-  ],
+  'github.com': [/^\/.*/], // 全路径放行(网页、release、archive、克隆等)
   'raw.githubusercontent.com': [/^\/.*/],
   'gist.githubusercontent.com': [/^\/.*/],
   'api.github.com': [/^\/.*/],
@@ -306,7 +303,7 @@ git clone ${base}/https://github.com/user/repo.git --depth=1</pre>
 
 <h2>支持的上游</h2>
 <ul>
-<li><code>github.com</code> 的 <code>releases</code>、<code>archive</code> 路径及 git Smart HTTP(克隆)</li>
+<li><code>github.com</code>(全部路径:网页、release、archive、git 克隆等;<code>blob</code> 文件页自动转 raw 直链)</li>
 <li><code>raw.githubusercontent.com</code>、<code>gist.githubusercontent.com</code>、<code>api.github.com</code>(REST API)</li>
 <li><code>codeload.github.com</code>(zip / tar.gz 源码包)</li>
 <li><code>objects.githubusercontent.com</code> 等 release 资产域名,以及 <code>avatars</code>、<code>camo</code> 图片域名</li>
@@ -407,13 +404,7 @@ function convert() {
   }
   var target = normalizeTarget(url)
   if (!isAllowed(target)) {
-    var msg
-    if (target.hostname === 'github.com') {
-      msg = '仅支持 github.com 的 releases / archive / 克隆链接;仓库主页、PR、Issue 等页面请粘贴文件直链或 raw 地址'
-    } else {
-      msg = '不支持代理 ' + target.hostname + ':不在白名单内'
-    }
-    render({ ok: false, error: msg })
+    render({ ok: false, error: '不支持代理 ' + target.hostname + ':不在白名单内' })
     return
   }
   render({ ok: true, proxied: location.origin + '/' + target.href })

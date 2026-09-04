@@ -44,7 +44,7 @@ https://<域名>/https://github.com/user/repo/blob/main/README.md
 
 | 域名 | 允许的路径 |
 | --- | --- |
-| `github.com` | `releases/`、`archive/`、git Smart HTTP(`info/refs`、`git-upload-pack`) |
+| `github.com` | 全部路径(网页、release、archive、git 克隆;`blob` 文件页自动转 raw 直链) |
 | `raw.githubusercontent.com` | 全部 |
 | `gist.githubusercontent.com` | 全部 |
 | `api.github.com` | 全部 |
