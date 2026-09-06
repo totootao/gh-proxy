@@ -13,19 +13,17 @@ const MAX_REDIRECTS = 5
 const MAX_CACHE_BYTES = 100 * 1024 * 1024 // 写入边缘缓存的最大体积
 
 // 上游域名白名单及允许的路径(防止被当作任意转发代理滥用)
+// 键支持通配:*.<domain> 匹配其任意子域;一次覆盖 GitHub 全系官方域名
 const HOST_RULES = {
-  'github.com': [/^\/.*/], // 全路径放行(网页、release、archive、克隆等)
-  'raw.githubusercontent.com': [/^\/.*/],
-  'gist.githubusercontent.com': [/^\/.*/],
-  'api.github.com': [/^\/.*/],
-  'codeload.github.com': [/^\/[^/]+\/[^/]+\/(?:legacy\.)?(?:zip|tar|tar\.gz)\//],
-  // 以下为 release 资产重定向目标 / 图片域名
-  'objects.githubusercontent.com': [/^\/.*/],
-  'release-assets.githubusercontent.com': [/^\/.*/],
-  'github-releases.githubusercontent.com': [/^\/.*/],
-  'copia.githubusercontent.com': [/^\/.*/],
-  'avatars.githubusercontent.com': [/^\/.*/],
-  'camo.githubusercontent.com': [/^\/.*/],
+  // GitHub 主站与全部子域:api(REST API)、uploads(release 资产上传)、codeload(源码包)、gist 等
+  'github.com': [/^\/.*/],
+  '*.github.com': [/^\/.*/],
+  // githubusercontent.com 全系子域:raw、objects/release-assets(资产下载)、avatars、camo、media(LFS)、
+  // user-images、actions(Actions 产物)、copilot-proxy 等
+  'githubusercontent.com': [/^\/.*/],
+  '*.githubusercontent.com': [/^\/.*/],
+  // release 资产 S3 直存域名(部分资产的 302 重定向目标)
+  'github-cloud.s3.amazonaws.com': [/^\/.*/],
 }
 
 // 无 Content-Length 时仍允许写入缓存的域名(通常是小文件)
@@ -129,10 +127,14 @@ async function handleRequest(request, ctx) {
   return finalizeResponse(upstream, 'MISS')
 }
 
-/** 校验目标 URL 是否命中域名/路径白名单 */
+/** 校验目标 URL 是否命中域名/路径白名单(键支持 *.domain 通配,匹配其任意子域) */
 function isAllowed(url) {
-  const rules = HOST_RULES[url.hostname]
-  return !!rules && rules.some((rx) => rx.test(url.pathname))
+  const host = url.hostname
+  for (const [pattern, rules] of Object.entries(HOST_RULES)) {
+    const hit = pattern.startsWith('*.') ? host.endsWith(pattern.slice(1)) : host === pattern
+    if (hit && rules.some((rx) => rx.test(url.pathname))) return true
+  }
+  return false
 }
 
 /**
@@ -303,10 +305,9 @@ git clone ${base}/https://github.com/user/repo.git --depth=1</pre>
 
 <h2>支持的上游</h2>
 <ul>
-<li><code>github.com</code>(全部路径:网页、release、archive、git 克隆等;<code>blob</code> 文件页自动转 raw 直链)</li>
-<li><code>raw.githubusercontent.com</code>、<code>gist.githubusercontent.com</code>、<code>api.github.com</code>(REST API)</li>
-<li><code>codeload.github.com</code>(zip / tar.gz 源码包)</li>
-<li><code>objects.githubusercontent.com</code> 等 release 资产域名,以及 <code>avatars</code>、<code>camo</code> 图片域名</li>
+<li><code>github.com</code> 与全部子域(<code>api</code> REST API、<code>uploads</code> 资产上传、<code>codeload</code> 源码包、<code>gist</code> 等)——路径不限;<code>blob</code> 文件页自动转 raw 直链</li>
+<li><code>*.githubusercontent.com</code> 全系:<code>raw</code>、<code>objects</code> / <code>release-assets</code>(资产下载)、<code>avatars</code>、<code>camo</code>、<code>media</code>(LFS)、<code>actions</code> 等</li>
+<li><code>github-cloud.s3.amazonaws.com</code>(release 资产 S3 直存,重定向目标)</li>
 </ul>
 
 <footer>本服务仅供个人加速使用,请遵守 GitHub 服务条款与各仓库许可证。</footer>
@@ -342,10 +343,14 @@ function normalizeTarget(url) {
 }
 
 function isAllowed(url) {
-  var pats = RULES[url.hostname]
-  if (!pats) return false
-  for (var i = 0; i < pats.length; i++) {
-    if (new RegExp(pats[i]).test(url.pathname)) return true
+  var host = url.hostname
+  for (var k in RULES) {
+    var hit = k.indexOf('*.') === 0 ? host.endsWith(k.slice(1)) : host === k
+    if (!hit) continue
+    var pats = RULES[k]
+    for (var i = 0; i < pats.length; i++) {
+      if (new RegExp(pats[i]).test(url.pathname)) return true
+    }
   }
   return false
 }

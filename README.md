@@ -44,13 +44,9 @@ https://<域名>/https://github.com/user/repo/blob/main/README.md
 
 | 域名 | 允许的路径 |
 | --- | --- |
-| `github.com` | 全部路径(网页、release、archive、git 克隆;`blob` 文件页自动转 raw 直链) |
-| `raw.githubusercontent.com` | 全部 |
-| `gist.githubusercontent.com` | 全部 |
-| `api.github.com` | 全部 |
-| `codeload.github.com` | zip / tar.gz 源码包 |
-| `objects.githubusercontent.com` 等 | release 资产重定向目标 |
-| `avatars.githubusercontent.com`、`camo.githubusercontent.com` | 全部 |
+| `github.com` 及 `*.github.com` | 全部路径:网页、release、archive、git 克隆;`api`(REST API)、`uploads`(release 资产上传)、`codeload`(源码包)、`gist` 等所有子域 |
+| `githubusercontent.com` 及 `*.githubusercontent.com` | 全部路径:`raw`、`objects` / `release-assets`(资产下载)、`avatars`、`camo`、`media`(LFS)、`user-images`、`actions` 等所有子域 |
+| `github-cloud.s3.amazonaws.com` | 全部路径(release 资产 S3 直存,重定向目标) |
 
 缓存命中状态可通过响应头 `x-gh-proxy-cache` 查看(`HIT` / `MISS`)。
 
